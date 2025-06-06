@@ -1,4 +1,3 @@
-import { isDev } from "./helpers";
 
 export const pricingPlans = [
     {
@@ -14,7 +13,7 @@ export const pricingPlans = [
         // "paymentLink": isDev ? "https://buy.stripe.com/test_6oE4h52KlaIq9qg4gg" : "https://buy.stripe.com/test_6oE4h52KlaIq9qg4gg",
         // "priceId": isDev ? 'price_1RAmd9PLcPBMNPfrKva0BIP1' : 'price_1RAmd9PLcPBMNPfrKva0BIP1'
         "paymentLink": "https://buy.stripe.com/test_14A8wParY3H37gCfKF4Ni02",
-        "priceId":' price_1RWKc6HrcjABI2JGF437rrCg '
+        "priceId":'price_1RWKc6HrcjABI2JGF437rrCg'
     },
     {
         "name": "pro",
