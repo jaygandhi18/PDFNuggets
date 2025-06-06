@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { containerVariants, itemVariants, pricingPlans } from "@/utils/constants";
 import { ArrowRight, CheckIcon } from "lucide-react";
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs"; // ✅ Add this
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation"; // ✅ Added for redirection
 import { MotionDiv, MotionSection } from "./motion-wrapper";
 
 type PriceType = {
@@ -34,23 +35,32 @@ const PricingCard = ({
   id,
   priceId,
 }: PriceType) => {
-  const { user } = useUser(); // ✅ Get user from Clerk
+  const { user } = useUser();
+  const router = useRouter(); // ✅ Added for redirect
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleBuyNow = async () => {
+    if (!user) {
+      router.push("/sign-in"); // ✅ Redirect unauthenticated user
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           priceId,
-          userId: user?.id, // ✅ Send userId to backend
+          userId: user.id,
         }),
       });
+
       const data = await res.json();
+
       if (data.url) {
         window.location.href = data.url;
       } else {
