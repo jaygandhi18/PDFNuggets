@@ -55,7 +55,7 @@ export default async function DashboardPage() {
                         <MotionDiv variants={itemVariants} initial="hidden" animate="visible" className="mb-6">
                             <div className="bg-emerald-50 rounded-lg border border-emerald-200 p-4 text-emerald-800">
                                 <p className="text-sm">you've reached the limit of {uploadLimit} uploads on your basic plan {' '}
-                                    <Link href="/pricing" className="text-emerald-800 underline font-medium underline-offset-4 inline-flex items-center hover:text-emerald-600">Click here to Upgrade to Pro {' '}
+                                    <Link href="/#pricing" className="text-emerald-800 underline font-medium underline-offset-4 inline-flex items-center hover:text-emerald-600">Click here to Upgrade to Pro {' '}
                                         <ArrowRight className="w-4 h-4 inline-block" />{' '}for unlimited uploads</Link>
                                 </p>
                             </div>

@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { getDbConnection } from "./db";
 
+// ✅ Subscription deleted handler
 export async function handleSubscriptionDeleted({
   subscriptionId,
   stripe,
@@ -13,7 +14,11 @@ export async function handleSubscriptionDeleted({
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const sql = await getDbConnection();
 
-    await sql`UPDATE users SET status = 'cancelled' WHERE customer_id = ${subscription.customer}`;
+    await sql`
+      UPDATE users
+      SET status = 'cancelled'
+      WHERE customer_id = ${subscription.customer}
+    `;
 
     console.log("Subscription cancelled successfully");
   } catch (err) {
@@ -22,6 +27,7 @@ export async function handleSubscriptionDeleted({
   }
 }
 
+// ✅ Checkout session completed handler
 export async function handleCheckoutSessionCompleted({
   session,
   stripe,
@@ -30,12 +36,15 @@ export async function handleCheckoutSessionCompleted({
   stripe: Stripe;
 }) {
   console.log("Checkout Session Completed", session);
+
   const customerId = session.customer as string;
   const customer = await stripe.customers.retrieve(customerId);
-  const priceId = session.line_items?.data[0]?.price?.id;
+  const priceId = session?.metadata?.priceId || session?.line_items?.data[0]?.price?.id;
 
   if ("email" in customer && priceId) {
-    const { email, name } = customer;
+    const { email, name, metadata } = customer;
+    const userId = metadata?.userId || session?.metadata?.userId;
+
     const sql = await getDbConnection();
 
     await createOrUpdateUser({
@@ -45,6 +54,7 @@ export async function handleCheckoutSessionCompleted({
       customerId,
       priceId: priceId as string,
       status: "active",
+      userId: userId as string,
     });
 
     await createPayment({
@@ -56,6 +66,7 @@ export async function handleCheckoutSessionCompleted({
   }
 }
 
+// ✅ Insert or update user record with user_id
 async function createOrUpdateUser({
   sql,
   email,
@@ -63,6 +74,7 @@ async function createOrUpdateUser({
   customerId,
   priceId,
   status,
+  userId,
 }: {
   sql: any;
   email: string;
@@ -70,21 +82,31 @@ async function createOrUpdateUser({
   customerId: string;
   priceId: string;
   status: string;
+  userId: string;
 }) {
   try {
-    const user = await sql`SELECT * FROM users WHERE email=${email}`;
+    const user = await sql`SELECT * FROM users WHERE email = ${email}`;
 
     if (user.length === 0) {
       await sql`
-        INSERT INTO users (email, full_name, customer_id, price_id, status)
-        VALUES (${email}, ${fullName}, ${customerId}, ${priceId}, ${status})
+        INSERT INTO users (email, full_name, customer_id, price_id, status, user_id)
+        VALUES (${email}, ${fullName}, ${customerId}, ${priceId}, ${status}, ${userId})
+      `;
+    } else {
+      await sql`
+        UPDATE users
+        SET full_name = ${fullName}, customer_id = ${customerId}, price_id = ${priceId}, status = ${status}, user_id = ${userId}
+        WHERE email = ${email}
       `;
     }
+
+    console.log("User created or updated successfully.");
   } catch (err) {
-    console.error("Error creating or updating user:", err, "from createOrUpdateUser");
+    console.error("Error creating or updating user:", err);
   }
 }
 
+// ✅ Insert payment record (avoids duplicate insert)
 async function createPayment({
   sql,
   session,
@@ -99,13 +121,12 @@ async function createPayment({
   try {
     const { amount_total, id, status } = session;
 
-    // ✅ Prevent duplicate payment insertion
-    const existingPayment = await sql`
-      SELECT * FROM payments WHERE stripe_payment_id = ${id}
+    const existing = await sql`
+      SELECT 1 FROM payments WHERE stripe_payment_id = ${id}
     `;
 
-    if (existingPayment.length > 0) {
-      console.log("⚠️ Payment already exists. Skipping insert.");
+    if (existing.length > 0) {
+      console.log("Payment already exists, skipping insert.");
       return;
     }
 
@@ -114,8 +135,8 @@ async function createPayment({
       VALUES (${amount_total}, ${status}, ${id}, ${priceId}, ${userEmail})
     `;
 
-    console.log("✅ Payment inserted successfully.");
+    console.log("Payment recorded successfully.");
   } catch (error) {
-    console.error("❌ Error creating payment:", error);
+    console.error("Error creating payment:", error);
   }
 }

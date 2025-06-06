@@ -3,11 +3,9 @@ import { getDbConnection } from './db';
 import { getUserUploadCount } from './summary-card';
 import { User } from '@clerk/nextjs/server';
 
-export async function getPriceIdForActiveUser(email: string) {
+export async function getPriceIdForActiveUser(userId: string) {
   const sql = await getDbConnection();
-
-  const query = await sql`SELECT price_id FROM users where email = ${email} AND status = 'active'`;
-
+  const query = await sql`SELECT price_id FROM users WHERE user_id = ${userId} AND status = 'active'`;
   return query?.[0]?.price_id || null;
 }
 

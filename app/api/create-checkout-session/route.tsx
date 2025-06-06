@@ -5,19 +5,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { priceId } = await req.json();
+    const { priceId, userId } = await req.json();
 
-    if (!priceId) {
-      return NextResponse.json({ error: "Missing priceId" }, { status: 400 });
+    if (!priceId || !userId) {
+      return NextResponse.json({ error: "Missing priceId or userId" }, { status: 400 });
     }
 
     const protocol = process.env.NEXT_PUBLIC_SITE_URL?.startsWith("http") ? "" : "https://";
     const domainURL = protocol + (process.env.NEXT_PUBLIC_SITE_URL || "localhost:3000");
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription", // or "payment" if one-time
+      mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
+      metadata: {
+        userId, // ✅ This ensures webhook gets it
+        priceId, // Optional but useful
+      },
       success_url: `${domainURL}/upload?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${domainURL}/pricing`,
     });

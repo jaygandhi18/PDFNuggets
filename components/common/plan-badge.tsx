@@ -12,13 +12,13 @@ export default async function PlanBadge() {
 
     if (!user?.id) return null;
 
-    const email = user?.emailAddresses?.[0]?.emailAddress;
+    // const email = user?.emailAddresses?.[0]?.emailAddress;
 
     let priceId: string | null = null;
 
-    if (email) {
-        priceId = await getPriceIdForActiveUser(email);
-    }
+    if (user.id) {
+    priceId = await getPriceIdForActiveUser(user.id);
+}
 
     let planName = 'Buy a plan';
 

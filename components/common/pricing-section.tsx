@@ -1,8 +1,10 @@
-"use client"
+"use client";
+
 import { cn } from "@/lib/utils";
 import { containerVariants, itemVariants, pricingPlans } from "@/utils/constants";
 import { ArrowRight, CheckIcon } from "lucide-react";
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs"; // ✅ Add this
 import { MotionDiv, MotionSection } from "./motion-wrapper";
 
 type PriceType = {
@@ -11,7 +13,7 @@ type PriceType = {
   description: string;
   items: string[];
   id: string;
-  paymentLink: string; // unused now but kept for typing compatibility
+  paymentLink: string;
   priceId: string;
 };
 
@@ -32,6 +34,7 @@ const PricingCard = ({
   id,
   priceId,
 }: PriceType) => {
+  const { user } = useUser(); // ✅ Get user from Clerk
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,11 +45,14 @@ const PricingCard = ({
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({
+          priceId,
+          userId: user?.id, // ✅ Send userId to backend
+        }),
       });
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
+        window.location.href = data.url;
       } else {
         setError(data.error || "Failed to create checkout session");
         setLoading(false);
